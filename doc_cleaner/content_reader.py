@@ -106,7 +106,17 @@ def _read_docx(path: str) -> Dict[str, str]:
         else:
             text_content.append(text)
             
-        if len(text_content) > 20: # Read first ~20 paragraphs
+        if len(text_content) > 50: # Read first ~50 paragraphs
+            break
+            
+    # Also read tables
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                text = cell.text.strip()
+                if text:
+                    text_content.append(text)
+        if len(text_content) > 100: # Global limit including paragraphs
             break
             
     return {
@@ -128,8 +138,8 @@ def _read_xlsx(path: str) -> Dict[str, str]:
             # Read first sheet
             if wb.sheetnames:
                 ws = wb[wb.sheetnames[0]]
-                # Read first 20 rows
-                for i, row in enumerate(ws.iter_rows(max_row=20, values_only=True)):
+                # Read first 50 rows
+                for i, row in enumerate(ws.iter_rows(max_row=50, values_only=True)):
                     row_text = " ".join([str(c) for c in row if c is not None])
                     if row_text.strip():
                         text_content.append(row_text)

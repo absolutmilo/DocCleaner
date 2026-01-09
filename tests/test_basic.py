@@ -57,5 +57,26 @@ class TestDocCleanerBasic(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.dup_dir, "copy.docx")))
         self.assertFalse(os.path.exists(p2))
 
+    def test_dry_run(self):
+        # Create duplicate that would be moved
+        p1 = self.create_dummy_file("dup_orig.docx", "CONTENT_X")
+        p2 = self.create_dummy_file("dup_copy.docx", "CONTENT_X")
+        
+        # Run duplicates with dry_run=True
+        files = [p1, p2]
+        results = duplicates.process_duplicates(files, dry_run=True)
+        
+        dups = [r for r in results if r['is_duplicate']]
+        self.assertEqual(len(dups), 1)
+        
+        # Verify file NOT moved
+        # Original logic: p2 is duplicate. It SHOULD be at 'final_path' but in dry_run final_path is the "hypothetical" path?
+        # Let's check my implementation of process_duplicates -> move_to_duplicated.
+        # It returns the hypothetical dest path.
+        # But the file on disk should still be at p2.
+        
+        self.assertTrue(os.path.exists(p2))
+        self.assertFalse(os.path.exists(os.path.join(self.dup_dir, "dup_copy.docx")))
+
 if __name__ == '__main__':
     unittest.main()

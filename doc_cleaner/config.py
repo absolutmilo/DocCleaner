@@ -1,33 +1,57 @@
 import os
-
-# Allowed extensions (modern office formats + PDF)
-ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.pptx', '.xlsx'}
-
-# Topic Keywords
-TOPIC_KEYWORDS = {
-    'FORMATO': ['formato', 'template', 'plantilla', 'formulario'],
-    'PROCEDIMIENTO': ['procedimiento', 'procedure', 'instructivo', 'manual', 'guia'],
-    'ACTA': ['acta', 'minutes', 'minuta', 'reunion', 'meeting'],
-    'PROCESO': ['proceso', 'process', 'diagrama', 'flujo'],
-}
-
-# Topic Output Folders mapping
-TOPIC_FOLDERS = {
-    'FORMATO': 'FORMATOS',
-    'PROCEDIMIENTO': 'PROCEDIMIENTOS',
-    'ACTA': 'ACTAS',
-    'PROCESO': 'PROCESOS',
-    'GENERIC': 'OTROS',
-}
-
-# Date Formats
-FOLDER_MONTH_FORMAT = "%b%Y"  # e.g. Ene2025 (implementation might need locale handling or custom map)
-FILENAME_DATE_FORMAT = "%Y-%m-%d"
+import json
+import logging
 
 # Paths
-# Defaults to User Desktop/duplicated. Can be overridden.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 USER_HOME = os.path.expanduser("~")
-DUPLICATED_FOLDER_PATH = os.path.join(USER_HOME, "Desktop", "duplicated")
+
+# Default Values (Fallbacks)
+DEFAULT_CONFIG = {
+    "allowed_extensions": [".pdf", ".docx", ".pptx", ".xlsx"],
+    "topic_keywords": {
+        "FORMATO": ["formato", "template", "plantilla", "formulario"],
+        "PROCEDIMIENTO": ["procedimiento", "procedure", "instructivo", "manual", "guia"],
+        "ACTA": ["acta", "minutes", "minuta", "reunion", "meeting"],
+        "PROCESO": ["proceso", "process", "diagrama", "flujo"]
+    },
+    "topic_folders": {
+        "FORMATO": "FORMATOS",
+        "PROCEDIMIENTO": "PROCEDIMIENTOS",
+        "ACTA": "ACTAS",
+        "PROCESO": "PROCESOS",
+        "GENERIC": "OTROS"
+    },
+    "folder_month_format": "%b%Y",
+    "filename_date_format": "%Y-%m-%d"
+}
+
+def load_config():
+    """Loads configuration from JSON file, falling back to defaults."""
+    if not os.path.exists(CONFIG_PATH):
+        logging.warning(f"Config file not found at {CONFIG_PATH}. Using defaults.")
+        return DEFAULT_CONFIG.copy()
+    
+    try:
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        logging.error(f"Error loading config file: {e}. Using defaults.")
+        return DEFAULT_CONFIG.copy()
+
+_config_data = load_config()
+
+# Expose constants for compatibility
+ALLOWED_EXTENSIONS = set(_config_data.get("allowed_extensions", DEFAULT_CONFIG["allowed_extensions"]))
+TOPIC_KEYWORDS = _config_data.get("topic_keywords", DEFAULT_CONFIG["topic_keywords"])
+TOPIC_FOLDERS = _config_data.get("topic_folders", DEFAULT_CONFIG["topic_folders"])
+FOLDER_MONTH_FORMAT = _config_data.get("folder_month_format", DEFAULT_CONFIG["folder_month_format"])
+FILENAME_DATE_FORMAT = _config_data.get("filename_date_format", DEFAULT_CONFIG["filename_date_format"])
+
+# Derived Paths
+# Allow overriding duplicated path via enviroment variable or keep default
+DUPLICATED_FOLDER_PATH = os.environ.get("DOCCLEANER_DUPLICATED_PATH", os.path.join(USER_HOME, "Desktop", "duplicated"))
 
 def get_month_folder_name(date_obj):
     """

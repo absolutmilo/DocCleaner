@@ -3,6 +3,8 @@ import sys
 import datetime
 import argparse
 import logging
+from logging.handlers import RotatingFileHandler
+from tqdm import tqdm
 from . import scanner, duplicates, content_reader, classifier, renamer, organizer, exporter
 
 def get_file_dates(path):
@@ -20,6 +22,8 @@ def get_file_dates(path):
 def main():
     parser = argparse.ArgumentParser(description="DocCleaner: Intelligent Document Organization")
     parser.add_argument("folder", help="Root input folder to clean")
+    parser.add_argument("--recursive", "-r", action="store_true", help="Scan subdirectories recursively")
+    parser.add_argument("--dry-run", action="store_true", help="Simulate execution without moving files")
     args = parser.parse_args()
     
     root_path = os.path.abspath(args.folder)
@@ -29,33 +33,54 @@ def main():
         return
 
     print(f"Starting DocCleaner on: {root_path}")
+    if args.dry_run:
+        print("!!! DRY RUN MODE: No files will be moved !!!")
+
     
     # 1. Create Output Structure
     run_timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_root = organizer.create_output_structure(root_path, run_timestamp)
+    output_root = organizer.create_output_structure(root_path, run_timestamp, dry_run=args.dry_run)
     print(f"Output folder created: {output_root}")
     
     # Setup Logging
-    log_dir = os.path.join(output_root, "logs")
-    os.makedirs(log_dir, exist_ok=True)
-    log_file = os.path.join(log_dir, "doccleaner.log")
+    # Console Handler (Simpler format for user)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+    
+    handlers = [console_handler]
+    
+    if not args.dry_run:
+        log_dir = os.path.join(output_root, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "doccleaner.log")
+        
+        # File Handler (Detailed format, rotating)
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8'
+        )
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        
+        handlers.append(file_handler)
     
     logging.basicConfig(
-        filename=log_file,
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        encoding='utf-8'
+        handlers=handlers,
+        force=True
     )
     logging.info(f"Started execution on {root_path}")
     
     # 2. Scan
-    print("Scanning files...")
-    all_files = scanner.scan_folder(root_path)
+    # 2. Scan
+    print(f"Scanning files... (Recursive: {args.recursive})")
+    all_files = scanner.scan_folder(root_path, recursive=args.recursive)
     print(f"Found {len(all_files)} files with allowed extensions.")
     
     # 3. Detect Duplicates
+    # 3. Detect Duplicates
     print("Detecting duplicates...")
-    dup_results = duplicates.process_duplicates(all_files)
+    dup_results = duplicates.process_duplicates(all_files, dry_run=args.dry_run)
     
     # 4. Process Non-duplicates
     final_results = []
@@ -63,7 +88,12 @@ def main():
     moved_dups = 0
     processed_count = 0
     
-    for item in dup_results:
+    # Use tqdm for progress bar
+    # If this is dry run or not, visual feedback is good.
+    # We iterating dup_results
+    iterator = tqdm(dup_results, desc="Processing Files", unit="file")
+    
+    for item in iterator:
         original_path = item['original_path']
         is_dup = item['is_duplicate']
         
@@ -116,7 +146,7 @@ def main():
             
             # Organize
             dest_dir = organizer.determine_destination(output_root, topic, ref_date)
-            final_path = organizer.move_file(original_path, dest_dir, new_name)
+            final_path = organizer.move_file(original_path, dest_dir, new_name, dry_run=args.dry_run)
             
             res_entry['current_path'] = final_path
             final_results.append(res_entry)
@@ -131,7 +161,11 @@ def main():
             final_results.append(res_entry)
         
     # 5. Export
-    exporter.generate_reports(final_results, output_root)
+    # 5. Export
+    if not args.dry_run:
+        exporter.generate_reports(final_results, output_root)
+    else:
+        print("\n[Dry Run] Reports would be generated in output folder.")
     
     # Summary
     print("\n" + "="*40)

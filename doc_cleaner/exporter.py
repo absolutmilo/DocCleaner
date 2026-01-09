@@ -14,8 +14,8 @@ def generate_reports(results: List[Dict[str, Any]], output_path: str):
     (and optional hash, etc)
     """
     
-    # 1. doccleaner_result_map.json
-    map_file = os.path.join(output_path, "doccleaner_result_map.json")
+    # 1. manifest.json (Execution Log for Undo)
+    map_file = os.path.join(output_path, "manifest.json")
     with open(map_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
         

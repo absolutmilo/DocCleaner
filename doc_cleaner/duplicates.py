@@ -20,14 +20,14 @@ def get_file_hash(file_path: str) -> str:
     except OSError:
         return "" # Should handle gracefully by skipping or logging
 
-def move_to_duplicated(file_path: str) -> str:
+def move_to_duplicated(file_path: str, dry_run: bool = False) -> str:
     """
     Moves a file to the configured DUPLICATED_FOLDER_PATH.
     Creates the folder if it doesn't exist.
     Handles name collisions in destination by appending count.
     Returns the new absolute path of the moved file.
     """
-    if not os.path.exists(config.DUPLICATED_FOLDER_PATH):
+    if not dry_run and not os.path.exists(config.DUPLICATED_FOLDER_PATH):
         os.makedirs(config.DUPLICATED_FOLDER_PATH, exist_ok=True)
         
     filename = os.path.basename(file_path)
@@ -36,14 +36,17 @@ def move_to_duplicated(file_path: str) -> str:
     # Handle collision if file with same name already exists in duplicated
     counter = 1
     base, ext = os.path.splitext(filename)
-    while os.path.exists(dest_path):
-        dest_path = os.path.join(config.DUPLICATED_FOLDER_PATH, f"{base}_{counter}{ext}")
-        counter += 1
+    
+    # Check collision against existing files on disk
+    if not dry_run:
+        while os.path.exists(dest_path):
+            dest_path = os.path.join(config.DUPLICATED_FOLDER_PATH, f"{base}_{counter}{ext}")
+            counter += 1
+        shutil.move(file_path, dest_path)
         
-    shutil.move(file_path, dest_path)
     return dest_path
 
-def process_duplicates(file_paths: List[str]) -> List[Dict[str, Any]]:
+def process_duplicates(file_paths: List[str], dry_run: bool = False) -> List[Dict[str, Any]]:
     """
     Identifies and moves duplicates.
     Grouping is done by file extension first (comparing strictly same types).
@@ -90,7 +93,7 @@ def process_duplicates(file_paths: List[str]) -> List[Dict[str, Any]]:
             if file_hash in seen_hashes:
                 # It's a duplicate
                 try:
-                    new_path = move_to_duplicated(path)
+                    new_path = move_to_duplicated(path, dry_run=dry_run)
                     results.append({
                         "original_path": path,
                         "hash": file_hash,

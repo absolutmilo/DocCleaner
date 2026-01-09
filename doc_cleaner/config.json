@@ -1,0 +1,45 @@
+{
+    "allowed_extensions": [
+        ".pdf",
+        ".docx",
+        ".pptx",
+        ".xlsx"
+    ],
+    "topic_keywords": {
+        "FORMATO": [
+            "formato",
+            "template",
+            "plantilla",
+            "formulario"
+        ],
+        "PROCEDIMIENTO": [
+            "procedimiento",
+            "procedure",
+            "instructivo",
+            "manual",
+            "guia"
+        ],
+        "ACTA": [
+            "acta",
+            "minutes",
+            "minuta",
+            "reunion",
+            "meeting"
+        ],
+        "PROCESO": [
+            "proceso",
+            "process",
+            "diagrama",
+            "flujo"
+        ]
+    },
+    "topic_folders": {
+        "FORMATO": "FORMATOS",
+        "PROCEDIMIENTO": "PROCEDIMIENTOS",
+        "ACTA": "ACTAS",
+        "PROCESO": "PROCESOS",
+        "GENERIC": "OTROS"
+    },
+    "folder_month_format": "%b%Y",
+    "filename_date_format": "%Y-%m-%d"
+}
