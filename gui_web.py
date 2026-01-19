@@ -224,12 +224,13 @@ def create_interface():
             with gr.Column(scale=2):
                 folder_input = gr.Textbox(
                     label="📂 Carpeta a Organizar",
-                    placeholder="Selecciona una carpeta usando el botón...",
-                    interactive=False
+                    placeholder="Escribe la ruta completa de la carpeta (ej: C:\\Mis Documentos)",
+                    interactive=True,
+                    info="Ingresa la ruta completa de la carpeta que deseas organizar"
                 )
                 
                 with gr.Row():
-                    folder_btn = gr.Button("📁 Seleccionar Carpeta", size="sm")
+                    example_btn = gr.Button("💡 Ejemplo de Ruta", size="sm")
                 
                 with gr.Row():
                     dry_run_check = gr.Checkbox(
@@ -277,22 +278,15 @@ def create_interface():
         manifest_state = gr.State("")
         
         # Event handlers
-        def select_folder():
-            # This will be handled by file explorer in browser
-            import tkinter as tk
-            from tkinter import filedialog
-            
-            try:
-                root = tk.Tk()
-                root.withdraw()
-                folder = filedialog.askdirectory(title="Seleccionar carpeta")
-                root.destroy()
-                return folder if folder else ""
-            except:
-                return gr.update(value="⚠️ No se pudo abrir el selector. Ingresa la ruta manualmente.")
+        def show_example():
+            import platform
+            if platform.system() == "Windows":
+                return "C:\\Users\\TuUsuario\\Documents\\MisCarpetas"
+            else:
+                return "/home/usuario/documentos"
         
-        folder_btn.click(
-            fn=select_folder,
+        example_btn.click(
+            fn=show_example,
             outputs=folder_input
         )
         
